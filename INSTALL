@@ -1,0 +1,34 @@
+
+* Copy dctl.dcr into Adobe Director Xtras folder, e.g C:\Program Files\Adobe\Adobe Director 11\Configuration\Xtras\
+
+* Open Adobe Director and activate dctl in Xtra menu(this is done once, on further startups dctl should be active) 
+
+* Once dctl is running and listening on the port the green light on the control panel should be on 
+
+* Install PHP from http://www.php.net/downloads.php, PHP-5.2.X is known to work for sure
+
+* Enable sockets support in PHP by uncommenting line "extension=php_sockets.dll" in php.ini file. 
+  You may also need to edit PHP's extension dir(if you haven't done it), usually it's enough to 
+  set it to "extension_dir=./ext" in php.ini file
+
+* For your convenince add path to PHP into Path environment variable, this way you'll be able run PHP
+  interpreter in the shell without specifying the path to it. On Windows it's done by clicking the right button
+  on "My Computer", then going into "Advanced" tab, then clicking "Environment variables" button and 
+  editing "Path" variable in the "System Variables" section. Simply add the directory containing php executable 
+  into the dialog box.  Don't worry it's done only once :)
+
+* Now go to the dctl directory, open shell and run the following command:
+
+  c:\director-dctl\dctl PING
+
+  You should see something like:
+
+    13:45:33.62502 : Logged onto Director server '192.168.4.96:1626' OK
+    13:45:33.62943 : Running task 'PING' []
+    13:45:33.226733 : Task 'PING' executed(0.16 sec) OK
+    -------------------------
+    ping args:[]
+  
+  Hooray, everything seems to be working!
+
+* You can list all available tasks by running HELP command, enjoy!
