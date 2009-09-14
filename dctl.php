@@ -1,7 +1,5 @@
 <?php
-require_once(dirname(__FILE__) . '/../../../shared/lib/game/GameSession.class.php');
-require_once(dirname(__FILE__) . '/../../../shared/lib/game/GameMessage.class.php');
-require_once(dirname(__FILE__) . '/dctl.inc.php');
+require_once(dirname(__FILE__) . '/lib/dctl.inc.php');
 
 //{{{helper stuff
 
@@ -13,7 +11,7 @@ require_once(dirname(__FILE__) . '/dctl.inc.php');
 * --long-param <value>
 * <value>
 */
-function parse_argv($params, $noopt = array()) 
+function dctl_parse_argv($params, $noopt = array()) 
 {
   $result = array();
   reset($params);
@@ -46,7 +44,7 @@ function parse_argv($params, $noopt = array())
   return $result;
 }
 
-function read_from_stdin()
+function dctl_read_from_stdin()
 {
   $read   = array(STDIN);
   $write  = NULL;
@@ -72,7 +70,7 @@ if(!sizeof($argv))
 $task = null;
 $task_args = array();
 
-foreach(parse_argv($argv) as $key => $value)
+foreach(dctl_parse_argv($argv) as $key => $value)
 {
   if(is_numeric($key))
   {
@@ -109,14 +107,14 @@ if(!$task)
   throw new Exception("Task name is not set");
 
 if(is_null($HOST))
-  $HOST = autoguess_host();
+  $HOST = dctl_autoguess_host();
 
-$stdin = read_from_stdin();
+$stdin = dctl_read_from_stdin();
 //put stdin as a first arg
 if($stdin)
   array_unshift($task_args, $stdin);
 
-$TASK = new DirectorTask($task, $task_args);
+$TASK = new dctlTask($task, $task_args);
 
 $DCTL = new DCTL($PORT, $HOST, $TIMEOUT);
 exit($DCTL->run($task, $task_args));
