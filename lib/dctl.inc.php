@@ -1,10 +1,21 @@
 <?php
-require_once(dirname(__FILE__) . '/lib/dctlSession.class.php');
-require_once(dirname(__FILE__) . '/lib/dctlMessage.class.php');
+require_once(dirname(__FILE__) . '/dctlSession.class.php');
+require_once(dirname(__FILE__) . '/dctlMessage.class.php');
+
+function dctl_udate($format, $utimestamp = null)
+{
+  if(is_null($utimestamp))
+    $utimestamp = microtime(true);
+
+  $timestamp = floor($utimestamp);
+  $milliseconds = round(($utimestamp - $timestamp) * 1000000);
+
+  return date(preg_replace('`(?<!\\\\)u`', $milliseconds, $format), $timestamp);
+} 
 
 function dctl_log($str)
 {
-  echo udate("H:i:s.u") . " : $str\n";
+  echo dctl_udate("H:i:s.u") . " : $str\n";
 }
 
 function dctl_hex_stream_to_bytes($stream)
@@ -22,6 +33,11 @@ function dctl_autoguess_host()
 
   return "127.0.0.1";
 }
+
+function dctl_next_dividable($num, $divider)
+{
+  return (floor(($num - 1) / $divider) + 1) * $divider;
+} 
 
 class DCTL
 {
@@ -50,7 +66,7 @@ class DCTL
 
     $bench = microtime(true);
     $this->session->write($task->makePacket());
-    $reply = new dctlTaskReply(GameMessage::readFromSession($this->session, /*raw*/true));
+    $reply = new dctlTaskReply(dctlMessage::readFromSession($this->session, /*raw*/true));
 
     dctl_log("Task '" . $task->name . "' executed(" .  round(microtime(true)-$bench, 2) . " sec) " .  $reply->error);
 
@@ -70,17 +86,17 @@ class DCTL
     if(is_object($this->session))
       return;
 
-    $this->session = GameSession::create($this->port, $this->host);
+    $this->session = dctlSession::create($this->port, $this->host);
     $this->session->setSocketRcvTimeout($this->timeout);//timeout in seconds, TODO: make some sort of pong message in dctl
 
     $this->session->write(self::_makeLogonPacket()); 
-    $msg = GameMessage::readFromSession($this->session, /*raw*/true);
+    $msg = dctlMessage::readFromSession($this->session, /*raw*/true);
 
     //if there is an error try to login one more time
     if($msg->getSubject() != "Logon")
     {
       $this->session->write(self::_makeLogonPacket()); 
-      $msg = GameMessage::readFromSession($this->session, /*raw*/true);
+      $msg = dctlMessage::readFromSession($this->session, /*raw*/true);
     }
 
     if($msg->getSubject() != "Logon")
@@ -159,7 +175,7 @@ class dctlTaskReply
   public $error;
   public $args = array();
 
-  function __construct(GameMessage $msg)
+  function __construct(dctlMessage $msg)
   {
     $this->error = $msg->getSubject();
 

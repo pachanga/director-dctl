@@ -48,7 +48,7 @@ class dctlByteBuffer
     else
       $this->addUint32(strlen($string));
 
-    $this->bytes .= pack('a' . next_dividable(strlen($string), 2), $string);
+    $this->bytes .= pack('a' . dctl_next_dividable(strlen($string), 2), $string);
   }
 
   function addPaddedStringN($string)
@@ -143,7 +143,7 @@ class dctlByteBuffer
   function extractPaddedString($network = false)
   {
     $len = $network ? $this->extractUint32N() : $this->extractUint32();
-    $str = $this->extractBytes(next_dividable($len, 2));
+    $str = $this->extractBytes(dctl_next_dividable($len, 2));
     return substr($str, 0, $len);
   }
 
