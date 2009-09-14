@@ -1,18 +1,18 @@
 <?php
-require_once(dirname(__FILE__) . '/../../../shared/lib/game/GameSession.class.php');
-require_once(dirname(__FILE__) . '/../../../shared/lib/game/GameMessage.class.php');
+require_once(dirname(__FILE__) . '/lib/dctlSession.class.php');
+require_once(dirname(__FILE__) . '/lib/dctlMessage.class.php');
 
 function dctl_log($str)
 {
   echo udate("H:i:s.u") . " : $str\n";
 }
 
-function hex_stream_to_bytes($stream)
+function dctl_hex_stream_to_bytes($stream)
 {
   return pack('H*', $stream);
 }
 
-function autoguess_host()
+function dctl_autoguess_host()
 {
   exec('ipconfig', $out, $ret);
 
@@ -33,7 +33,7 @@ class DCTL
   function __construct($port = 1626, $host = null, $timeout = 300)
   {
     if(!$host)
-      $host = autoguess_host();
+      $host = dctl_autoguess_host();
 
     $this->host = $host;
     $this->port = $port;
@@ -44,13 +44,13 @@ class DCTL
   {
     $this->_ensureConnection();
 
-    $task = new DirectorTask($task_name, $task_args);
+    $task = new dctlTask($task_name, $task_args);
 
     dctl_log("Running task '" . $task->name . "' [" . implode(',', $task->args) . "]");
 
     $bench = microtime(true);
     $this->session->write($task->makePacket());
-    $reply = new DirectorTaskReply(GameMessage::readFromSession($this->session, /*raw*/true));
+    $reply = new dctlTaskReply(GameMessage::readFromSession($this->session, /*raw*/true));
 
     dctl_log("Task '" . $task->name . "' executed(" .  round(microtime(true)-$bench, 2) . " sec) " .  $reply->error);
 
@@ -91,7 +91,7 @@ class DCTL
 
   private static function _makeLogonPacket()
   {
-    $out = new ByteBuffer();
+    $out = new dctlByteBuffer();
     $out->addUint32N(0); //error
     $out->addUint32N(0); //timestamp
     $out->addPaddedStringN("Logon");//subject
@@ -103,9 +103,9 @@ class DCTL
     //TODO: find a way to make it dynamically
     $encrypted = "8cb061ca1153a057f86cd8c7124795590fbf24033c764a5ac6a43" . 
                 "436d3dd2c6c64089e67ce3cf16efd0ba9817354a3862a49ae9b";
-    $out->addBytes(hex_stream_to_bytes($encrypted));
+    $out->addBytes(dctl_hex_stream_to_bytes($encrypted));
 
-    $header = new ByteBuffer();
+    $header = new dctlByteBuffer();
     $header->addBytes("r\x00");
     $header->addUint32N($out->getSize());
 
@@ -113,7 +113,7 @@ class DCTL
   }
 }
 
-class DirectorTask
+class dctlTask
 {
   public $name;
   public $args = array();
@@ -126,7 +126,7 @@ class DirectorTask
 
   function makePacket()
   {
-    $out = new ByteBuffer();
+    $out = new dctlByteBuffer();
     $out->addUint32N(0); //error
     $out->addUint32N(0); //timestamp
     //encoding task in a subject for now since the contents is blowfished :(
@@ -146,7 +146,7 @@ class DirectorTask
       $out->addPaddedStringN($arg);
     }
 
-    $header = new ByteBuffer();
+    $header = new dctlByteBuffer();
     $header->addBytes("r\x00");
     $header->addUint32N($out->getSize());
 
@@ -154,7 +154,7 @@ class DirectorTask
   }
 }
 
-class DirectorTaskReply
+class dctlTaskReply
 {
   public $error;
   public $args = array();
