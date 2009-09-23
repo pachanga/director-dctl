@@ -489,7 +489,6 @@ class dctlSession
   protected $exclude_filter = array();
   protected $include_filter = array();
   protected $filtered = array();
-  protected $ignore_unexpected = true;
   protected $forbidden = array();
 
   function __construct($socket)
@@ -533,71 +532,6 @@ class dctlSession
   function getSocket()
   {
     return $this->socket;
-  }
-
-  function ignoreUnexpectedPackets($flag = true)
-  {
-    $this->ignore_unexpected = $flag;
-  }
-
-  function addIncludeFilter($type)
-  {
-    if(is_array($type))
-    {
-      foreach($type as $item)
-        $this->include_filter[$item] = true;
-    }
-    else
-      $this->include_filter[$type] = true;
-  }
-
-  function markForbidden($type)
-  {
-    if(is_array($type))
-    {
-      foreach($type as $item)
-        $this->forbidden[$item] = true;
-    }
-    else
-      $this->forbidden[$type] = true;
-  }
-
-  function addExcludeFilter($type)
-  {
-    if(is_array($type))
-    {
-      foreach($type as $item)
-        $this->exclude_filter[$item] = true;
-    }
-    else
-      $this->exclude_filter[$type] = true;
-  }
-
-  function resetExcludeFilters()
-  {
-    $this->exclude_filter = array();
-  }
-
-  function resetIncludeFilters()
-  {
-    $this->include_filter = array();
-  }
-
-  function resetFiltredMessages()
-  {
-    $this->filtered = array();
-  }
-
-  function getFilteredMessages($type = null)
-  {
-    if($type && isset($this->filtered[$type]))
-      return $this->filtered[$type];
-
-    $all = array();
-    foreach($this->filtered as $key => $arr)
-      foreach($arr as $msg)
-        $all[] = $msg;
-    return $all;
   }
 
   function exists()
@@ -671,13 +605,7 @@ class dctlSession
 
   protected function _doRecvMsgFromSocket($sock)
   {
-    return GameMessage :: readFromSession($this, /*raw*/false);
-  }
-
-  // For portal
-  function recvOneMsg() 
-  {
-    return $this->_doRecvMsgFromSocket($this->socket);
+    return dctlMessage::readFromSession($this, /*raw*/false);
   }
 
   function recvMsg($timeout = null)
@@ -685,41 +613,13 @@ class dctlSession
     $time_start = microtime(true) * 1000;
     do
     {
-      $msg = $this->_filterMsg($this->_doRecvMsgFromSocket($this->socket));
+      $msg = $this->_doRecvMsgFromSocket($this->socket);
       if($timeout && $timeout < (microtime(true) * 1000 - $time_start))
         throw new Exception("Message recieval timeout expired");
     } 
     while($msg === null);
 
     return $msg;
-  }
-
-  protected function _filterMsg($msg)
-  {
-    if($this->forbidden && isset($this->forbidden[$msg->getType()]))
-      throw new Exception("Message of type '" . $msg->getType() . "' is forbidden");
-
-    if($this->include_filter && !isset($this->include_filter[$msg->getType()]))
-    {
-      $this->_addToFiltered($msg);
-      return null;
-    }
-
-    if(isset($this->exclude_filter[$msg->getType()]))
-    {
-      $this->_addToFiltered($msg);
-      return null;
-    }
-
-    return $msg;
-  }
-
-  protected function _addToFiltered($msg)
-  {
-    if(!isset($this->filtered[$msg->getType()]))
-      $this->filtered[$msg->getType()] = array();
-
-    $this->filtered[$msg->getType()][] = $msg;
   }
 
   function recvPacket($type, $timeout = null)
@@ -741,28 +641,7 @@ class dctlSession
       echo "({$this->socket}) wait '$type' $at...\n";
     }
 
-    if($this->ignore_unexpected)
-    {
-      $time_start = microtime(true) * 1000;
-      while(true)
-      {
-        $msg = $this->recvMsg($timeout);
-
-        $mapped_type = GamePacket :: mapStringType2Number($type);
-        if($mapped_type === null)
-          throw new Exception("Could not map string type '$type' to any packet(forgot to build map?)");
-
-        if($msg->getType() == $mapped_type)
-          break;
-        else if(defined('VERBOSE'))
-          echo "({$this->socket}) packet '" . GamePacket :: mapToPacket($msg)->getName() . "' was ignored\n";
-
-        if($timeout < (microtime(true) * 1000 - $time_start))
-          throw new Exception("Packet '$type' recieval timeout expired");
-      }
-    }
-    else
-      $msg = $this->recvMsg($timeout);
+    $msg = $this->recvMsg($timeout);
 
     $class = 'Packet_' . $type;
     $packet = new $class($msg);
